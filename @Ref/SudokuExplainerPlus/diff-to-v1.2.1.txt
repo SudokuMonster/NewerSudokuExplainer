@@ -1,0 +1,453 @@
+diff -r -C 5 '--exclude=*.class' SudokuExplainerProject-org/diuf/sudoku/gui/SudokuExplainer.java SudokuExplainerProject-Plus/diuf/sudoku/gui/SudokuExplainer.java
+*** SudokuExplainerProject-org/diuf/sudoku/gui/SudokuExplainer.java	2007-12-14 15:26:10.000000000 +0900
+--- SudokuExplainerProject-Plus/diuf/sudoku/gui/SudokuExplainer.java	2016-04-17 13:52:48.000000000 +0900
+***************
+*** 3,21 ****
+   * Copyright (C) 2006-2007 Nicolas Juillerat
+   * Available under the terms of the Lesser General Public License (LGPL)
+   */
+  package diuf.sudoku.gui;
+  
+! import java.io.*;
+! import java.util.*;
+! 
+! import javax.swing.*;
+! 
+! import diuf.sudoku.*;
+! import diuf.sudoku.io.*;
+! import diuf.sudoku.solver.*;
+! import diuf.sudoku.tools.*;
+  
+  /**
+   * The main class and controller. All actions performed in the gui
+   * are directly redirected to method of this class, which
+   * then calls the appropriate methods of the solver and other
+--- 3,43 ----
+   * Copyright (C) 2006-2007 Nicolas Juillerat
+   * Available under the terms of the Lesser General Public License (LGPL)
+   */
+  package diuf.sudoku.gui;
+  
+! import java.io.File;
+! import java.util.ArrayList;
+! import java.util.BitSet;
+! import java.util.Collection;
+! import java.util.Collections;
+! import java.util.HashMap;
+! import java.util.HashSet;
+! import java.util.List;
+! import java.util.Map;
+! import java.util.Set;
+! import java.util.Stack;
+! 
+! import javax.swing.JOptionPane;
+! import javax.swing.SwingUtilities;
+! import javax.swing.UIManager;
+! 
+! import diuf.sudoku.Cell;
+! import diuf.sudoku.Grid;
+! import diuf.sudoku.Settings;
+! import diuf.sudoku.io.ErrorMessage;
+! import diuf.sudoku.io.SudokuIO;
+! import diuf.sudoku.solver.DirectHint;
+! import diuf.sudoku.solver.Hint;
+! import diuf.sudoku.solver.HintsAccumulator;
+! import diuf.sudoku.solver.IndirectHint;
+! import diuf.sudoku.solver.Rule;
+! import diuf.sudoku.solver.Solver;
+! import diuf.sudoku.solver.WarningHint;
+! import diuf.sudoku.tools.HtmlLoader;
+! import diuf.sudoku.tools.SingletonBitSet;
+! import diuf.sudoku.tools.StrongReference;
+  
+  /**
+   * The main class and controller. All actions performed in the gui
+   * are directly redirected to method of this class, which
+   * then calls the appropriate methods of the solver and other
+***************
+*** 36,46 ****
+  
+      private List<Hint> unfilteredHints = null; // All hints (unfiltered)
+      private List<Hint> filteredHints = null; // All hints (filtered)
+      private boolean isFiltered = true;
+      private List<Hint> selectedHints = new ArrayList<Hint>(); // Currently selected hint
+! 
+      // Cache for filter
+      Set<Cell> givenCells = new HashSet<Cell>(); // Cell values already encountered
+      Map<Cell, BitSet> removedPotentials = new HashMap<Cell, BitSet>(); // Removable potentials already encountered
+  
+  
+--- 58,69 ----
+  
+      private List<Hint> unfilteredHints = null; // All hints (unfiltered)
+      private List<Hint> filteredHints = null; // All hints (filtered)
+      private boolean isFiltered = true;
+      private List<Hint> selectedHints = new ArrayList<Hint>(); // Currently selected hint
+!     private Stack<Grid> gridStack = new Stack<Grid>(); // Stack for undo
+!     
+      // Cache for filter
+      Set<Cell> givenCells = new HashSet<Cell>(); // Cell values already encountered
+      Map<Cell, BitSet> removedPotentials = new HashMap<Cell, BitSet>(); // Removable potentials already encountered
+  
+  
+***************
+*** 240,249 ****
+--- 263,273 ----
+       * @param cell the cell
+       * @param value the value typed in the cell, or <code>0</code> if
+       * the cell's value was erased.
+       */
+      public void cellValueTyped(Cell cell, int value) {
++     	pushGrid();
+          int oldValue = cell.getValue();
+          cell.setValue(value);
+          if (value == 0 || oldValue != 0)
+              solver.rebuildPotentialValues();
+          else
+***************
+*** 256,265 ****
+--- 280,290 ----
+              repaintHints();
+          }
+      }
+  
+      public void candidateTyped(Cell cell, int candidate) {
++     	pushGrid();
+          if (cell.hasPotentialValue(candidate))
+              cell.removePotentialValue(candidate);
+          else
+              cell.addPotentialValue(candidate);
+          solver.cancelPotentialValues();
+***************
+*** 428,442 ****
+--- 453,472 ----
+              displayError(ex);
+          }
+      }
+  
+      public void applySelectedHints() {
++     	pushGrid();
+          for (Hint hint : selectedHints)
+              hint.apply();
+          clearHints();
+          repaintAll();
+      }
++     
++     public void undoStep() {
++     	popGrid();
++     }
+  
+      public void applySelectedHintsAndContinue() {
+          applySelectedHints();
+          getNextHint();
+      }
+***************
+*** 466,475 ****
+--- 496,521 ----
+              copy.copyTo(grid);
+          if (message != null)
+              JOptionPane.showMessageDialog(frame, message.toString(), "Paste",
+                      (message.isFatal() ? JOptionPane.ERROR_MESSAGE : JOptionPane.WARNING_MESSAGE));
+      }
++     
++     public void pushGrid() {
++         Grid copy = new Grid();
++         this.grid.copyTo(copy);
++         this.gridStack.push(copy);
++       }
++       
++       private void popGrid() {
++         if (!this.gridStack.isEmpty()) {
++           Grid prev = (Grid)this.gridStack.pop();
++           prev.copyTo(this.grid);
++           this.solver.rebuildPotentialValues();
++           clearHints();
++           repaintAll();
++         }
++       }
+  
+      public void copyGrid() {
+          SudokuIO.saveToClipboard(grid);
+      }
+  
+diff -r -C 5 '--exclude=*.class' SudokuExplainerProject-org/diuf/sudoku/gui/SudokuFrame.java SudokuExplainerProject-Plus/diuf/sudoku/gui/SudokuFrame.java
+*** SudokuExplainerProject-org/diuf/sudoku/gui/SudokuFrame.java	2007-12-20 16:43:34.000000000 +0900
+--- SudokuExplainerProject-Plus/diuf/sudoku/gui/SudokuFrame.java	2016-04-17 13:52:16.000000000 +0900
+***************
+*** 3,29 ****
+   * Copyright (C) 2006-2007 Nicolas Juillerat
+   * Available under the terms of the Lesser General Public License (LGPL)
+   */
+  package diuf.sudoku.gui;
+  
+- import java.security.*;
+- import java.text.*;
+- import java.util.*;
+- import java.awt.*;
+- import java.awt.event.*;
+- import java.io.*;
+- 
+- import javax.swing.*;
+- import javax.swing.UIManager.*;
+- import javax.swing.tree.*;
+- 
+- import diuf.sudoku.*;
+  import static diuf.sudoku.Settings.*;
+! import diuf.sudoku.solver.*;
+! import diuf.sudoku.solver.checks.*;
+! import diuf.sudoku.tools.*;
+  import javax.swing.ImageIcon;
+  
+  /**
+   * The main window of the application.
+   * All the action are redirected to the {@link SudokuExplainer} class.
+   */
+--- 3,84 ----
+   * Copyright (C) 2006-2007 Nicolas Juillerat
+   * Available under the terms of the Lesser General Public License (LGPL)
+   */
+  package diuf.sudoku.gui;
+  
+  import static diuf.sudoku.Settings.*;
+! 
+! import java.awt.BorderLayout;
+! import java.awt.Component;
+! import java.awt.Dimension;
+! import java.awt.FlowLayout;
+! import java.awt.Graphics;
+! import java.awt.Graphics2D;
+! import java.awt.GridBagConstraints;
+! import java.awt.GridBagLayout;
+! import java.awt.GridLayout;
+! import java.awt.Point;
+! import java.awt.RenderingHints;
+! import java.awt.event.ActionEvent;
+! import java.awt.event.ActionListener;
+! import java.awt.event.InputEvent;
+! import java.awt.event.KeyEvent;
+! import java.io.File;
+! import java.io.IOException;
+! import java.security.AccessControlException;
+! import java.text.DecimalFormat;
+! import java.util.ArrayList;
+! import java.util.Arrays;
+! import java.util.BitSet;
+! import java.util.Collection;
+! import java.util.Collections;
+! import java.util.EnumSet;
+! import java.util.Map;
+! import java.util.Set;
+! 
+! import javax.swing.ButtonGroup;
+  import javax.swing.ImageIcon;
++ import javax.swing.JButton;
++ import javax.swing.JCheckBox;
++ import javax.swing.JCheckBoxMenuItem;
++ import javax.swing.JComboBox;
++ import javax.swing.JDialog;
++ import javax.swing.JEditorPane;
++ import javax.swing.JFileChooser;
++ import javax.swing.JFrame;
++ import javax.swing.JLabel;
++ import javax.swing.JMenu;
++ import javax.swing.JMenuBar;
++ import javax.swing.JMenuItem;
++ import javax.swing.JOptionPane;
++ import javax.swing.JPanel;
++ import javax.swing.JRadioButton;
++ import javax.swing.JRadioButtonMenuItem;
++ import javax.swing.JScrollPane;
++ import javax.swing.JTree;
++ import javax.swing.KeyStroke;
++ import javax.swing.LookAndFeel;
++ import javax.swing.SwingUtilities;
++ import javax.swing.UIManager;
++ import javax.swing.UIManager.LookAndFeelInfo;
++ import javax.swing.tree.DefaultTreeCellRenderer;
++ import javax.swing.tree.DefaultTreeModel;
++ import javax.swing.tree.TreeCellRenderer;
++ import javax.swing.tree.TreePath;
++ import javax.swing.tree.TreeSelectionModel;
++ 
++ import diuf.sudoku.Cell;
++ import diuf.sudoku.Settings;
++ import diuf.sudoku.SolvingTechnique;
++ import diuf.sudoku.solver.DirectHint;
++ import diuf.sudoku.solver.Hint;
++ import diuf.sudoku.solver.IndirectHint;
++ import diuf.sudoku.solver.Rule;
++ import diuf.sudoku.solver.WarningHint;
++ import diuf.sudoku.solver.checks.AnalysisInfo;
++ import diuf.sudoku.tools.Asker;
++ import diuf.sudoku.tools.HtmlLoader;
+  
+  /**
+   * The main window of the application.
+   * All the action are redirected to the {@link SudokuExplainer} class.
+   */
+***************
+*** 49,59 ****
+      private JPanel sudokuContainer = null;
+      private JPanel hintDetailContainer = null;
+      private JPanel buttonsPane = null;
+      private JButton btnGetAllHints = null;
+      private JButton btnApplyHintAndGet = null;
+!     private JButton btnQuit = null;
+      private JPanel buttonsContainer = null;
+      private JScrollPane hintsTreeScrollpane = null;
+      private JButton btnGetNextHint = null;
+      private JPanel viewSelectionPanel = null;
+      private JPanel hintsTreePanel = null;
+--- 104,114 ----
+      private JPanel sudokuContainer = null;
+      private JPanel hintDetailContainer = null;
+      private JPanel buttonsPane = null;
+      private JButton btnGetAllHints = null;
+      private JButton btnApplyHintAndGet = null;
+!     private JButton btnUndoStep = null;
+      private JPanel buttonsContainer = null;
+      private JScrollPane hintsTreeScrollpane = null;
+      private JButton btnGetNextHint = null;
+      private JPanel viewSelectionPanel = null;
+      private JPanel hintsTreePanel = null;
+***************
+*** 77,86 ****
+--- 132,142 ----
+      private JMenuItem mitClear = null;
+      private JMenuItem mitPaste = null;
+      private JMenu toolMenu = null;
+      private JMenuItem mitCheckValidity = null;
+      private JMenuItem mitAnalyse = null;
++     private JMenuItem mitUndoStep = null;
+      private JMenuItem mitSolveStep = null;
+      private JMenuItem mitGetNextHint = null;
+      private JMenuItem mitApplyHint = null;
+      private JMenuItem mitGetAllHints = null;
+      private JMenuItem mitSolve = null;
+***************
+*** 525,535 ****
+                      javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font(
+                              "Dialog", java.awt.Font.BOLD, 12), null));
+              buttonsPane.add(getBtnGetNextHint(), gridBagConstraints11);
+              buttonsPane.add(getBtnApplyHintAndGet(), gridBagConstraints1);
+              buttonsPane.add(getBtnGetAllHints(), gridBagConstraints2);
+!             buttonsPane.add(getBtnQuit(), gridBagConstraints3);
+              buttonsPane.add(getBtnApplyHint(), gridBagConstraints21);
+              buttonsPane.add(getBtnCheckValidity(), gridBagConstraints);
+          }
+          return buttonsPane;
+      }
+--- 581,591 ----
+                      javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font(
+                              "Dialog", java.awt.Font.BOLD, 12), null));
+              buttonsPane.add(getBtnGetNextHint(), gridBagConstraints11);
+              buttonsPane.add(getBtnApplyHintAndGet(), gridBagConstraints1);
+              buttonsPane.add(getBtnGetAllHints(), gridBagConstraints2);
+!             buttonsPane.add(getBtnUndoStep(), gridBagConstraints3);
+              buttonsPane.add(getBtnApplyHint(), gridBagConstraints21);
+              buttonsPane.add(getBtnCheckValidity(), gridBagConstraints);
+          }
+          return buttonsPane;
+      }
+***************
+*** 581,606 ****
+              });
+          }
+          return btnApplyHintAndGet;
+      }
+  
+-     private JButton getBtnQuit() {
+-         if (btnQuit == null) {
+-             btnQuit = new JButton();
+-             btnQuit.setText("Quit");
+-             btnQuit.setToolTipText("Quit the application");
+-             btnQuit.setMnemonic(java.awt.event.KeyEvent.VK_Q);
+-             btnQuit.addActionListener(new java.awt.event.ActionListener() {
+- 
+-                 public void actionPerformed(java.awt.event.ActionEvent e) {
+-                     quit();
+-                 }
+-             });
+-         }
+-         return btnQuit;
+-     }
+- 
+      private JPanel getButtonsContainer() {
+          if (buttonsContainer == null) {
+              buttonsContainer = new JPanel();
+              buttonsContainer.setLayout(new GridLayout(1, 1));
+              buttonsContainer.add(getButtonsPane(), null);
+--- 637,646 ----
+***************
+*** 667,676 ****
+--- 707,731 ----
+                  }
+              });
+          }
+          return btnCheckValidity;
+      }
++     
++     private JButton getBtnUndoStep() {
++         if (btnUndoStep == null) {
++           btnUndoStep = new JButton();
++           btnUndoStep.setText("Undo step");
++           btnUndoStep.setToolTipText("Undo previous solve step or value selection");
++           btnUndoStep.setMnemonic(85);
++           btnUndoStep.addActionListener(new ActionListener() {
++             public void actionPerformed(ActionEvent e) {
++               SudokuFrame.this.engine.undoStep();
++             }
++           });
++         }
++         return this.btnUndoStep;
++       }
+  
+      private JButton getBtnApplyHint() {
+          if (btnApplyHint == null) {
+              btnApplyHint = new JButton();
+              btnApplyHint.setText("Apply hint");
+***************
+*** 1015,1024 ****
+--- 1070,1082 ----
+              getMitGetNextHint().setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0));
+              toolMenu.add(getMitApplyHint());
+              getMitApplyHint().setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
+              toolMenu.add(getMitGetAllHints());
+              getMitGetAllHints().setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
++             toolMenu.add(getMitUndoStep());
++             getMitUndoStep().setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F2,
++                     InputEvent.SHIFT_MASK));
+              toolMenu.addSeparator();
+              toolMenu.add(getMitGetSmallClue());
+              getMitGetSmallClue().setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F6, 0));
+              toolMenu.add(getMitGetBigClue());
+              getMitGetBigClue().setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F6,
+***************
+*** 1069,1078 ****
+--- 1127,1152 ----
+              });
+          }
+          return mitAnalyse;
+      }
+  
++     private JMenuItem getMitUndoStep()
++     {
++       if (mitUndoStep == null) {
++         mitUndoStep = new JMenuItem();
++         mitUndoStep.setText("Undo step");
++         mitUndoStep.setMnemonic(85);
++         mitUndoStep.setToolTipText(getBtnUndoStep().getToolTipText());
++         mitUndoStep.addActionListener(new ActionListener() {
++           public void actionPerformed(ActionEvent e) {
++             engine.undoStep();
++           }
++         });
++       }
++       return mitUndoStep;
++     }
++     
+      private JMenuItem getMitSolveStep() {
+          if (mitSolveStep == null) {
+              mitSolveStep = new JMenuItem();
+              mitSolveStep.setText("Solve step");
+              mitSolveStep.setMnemonic(KeyEvent.VK_S);

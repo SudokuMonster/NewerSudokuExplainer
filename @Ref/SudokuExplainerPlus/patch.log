@@ -1,0 +1,36 @@
+$ cd SudokuExplainerProject-org
+
+$ patch -c -p1 --verbose < ../diff.txt
+Hmm...  Looks like a new-style context diff to me...
+The text leading up to this was:
+--------------------------
+|diff -r -C 5 '--exclude=*.class' SudokuExplainerProject-org/diuf/sudoku/gui/SudokuExplainer.java SudokuExplainerProject-Plus/diuf/sudoku/gui/SudokuExplainer.java
+|*** SudokuExplainerProject-org/diuf/sudoku/gui/SudokuExplainer.java    2007-12-14 15:26:10.000000000 +0900
+|--- SudokuExplainerProject-Plus/diuf/sudoku/gui/SudokuExplainer.java   2016-04-17 13:52:48.000000000 +0900
+--------------------------
+patching file diuf/sudoku/gui/SudokuExplainer.java
+Using Plan A...
+Hunk #1 succeeded at 3.
+Hunk #2 succeeded at 58.
+Hunk #3 succeeded at 263.
+Hunk #4 succeeded at 280.
+Hunk #5 succeeded at 453.
+Hunk #6 succeeded at 496.
+Hmm...  The next patch looks like a new-style context diff to me...
+The text leading up to this was:
+--------------------------
+|diff -r -C 5 '--exclude=*.class' SudokuExplainerProject-org/diuf/sudoku/gui/SudokuFrame.java SudokuExplainerProject-Plus/diuf/sudoku/gui/SudokuFrame.java
+|*** SudokuExplainerProject-org/diuf/sudoku/gui/SudokuFrame.java        2007-12-20 16:43:34.000000000 +0900
+|--- SudokuExplainerProject-Plus/diuf/sudoku/gui/SudokuFrame.java       2016-04-17 13:52:16.000000000 +0900
+--------------------------
+patching file diuf/sudoku/gui/SudokuFrame.java
+Using Plan A...
+Hunk #1 succeeded at 3.
+Hunk #2 succeeded at 104.
+Hunk #3 succeeded at 132.
+Hunk #4 succeeded at 581.
+Hunk #5 succeeded at 637.
+Hunk #6 succeeded at 707.
+Hunk #7 succeeded at 1070.
+Hunk #8 succeeded at 1127.
+done
