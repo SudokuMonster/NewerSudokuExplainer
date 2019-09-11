@@ -8,7 +8,7 @@
 
 ***Title: Brief Intro***
 
-这是一款以 Java 编写的数独分析和测试软件，官网为http://diuf.unifr.ch/pai/people/juillera/Sudoku/Sudoku.html（不过现在已经打不开了……）。
+这是一款以 Java 编写的数独分析和测试软件，官网为http://diuf.unifr.ch/pai/people/juillera/Sudoku/Sudoku.html （不过现在已经打不开了……）。
 
 This is a Sudoku analysis and test software written by Java programming language, whose website is http://diuf.unifr.ch/pai/people/juillera/Sudoku/Sudoku.html (However the website has shut down).
 
