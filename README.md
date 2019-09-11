@@ -50,7 +50,7 @@ And... analysis information
 
 这里陈列为 Sudoku Explainer 软件添加和修改的一些功能，由于 Sudoku Explainer 软件使用了 LGPL 协议，所以所有更新修改的内容都将会公开其中的源代码。
 
-Here displays updated and new functions in Sudoku Explainer. All project codes will be uploaded because of using LGPL protocol.
+Here displays updates and new functions in Sudoku Explainer. All project codes will be uploaded because of using LGPL protocol.
 
 
 ## 文件夹介绍
@@ -70,7 +70,7 @@ Here displays updated and new functions in Sudoku Explainer. All project codes w
 
 * 新增 W-Wing、双强链技巧（Turbot Fishes）、WXYZ-Wing、VWXYZ-Wing 和 XYZ-Wing、WXYZ-Wing 的拓展构型；
   
-  Add *W-Wing*, *Two-Strong-Link Techniques (Turbot Fish, 2-String Kite & Skyscraper)*, *XYZ-Wing Extension, WXYZ-Wing, WXYZ-Wing Extension, VWXYZ-Wing*.
+  Add *W-Wing*, *Two-Strong-Link Techniques (Turbot Fish (Normal Type), 2-String Kite & Skyscraper)*, *XYZ-Wing Extension, WXYZ-Wing, WXYZ-Wing Extension, VWXYZ-Wing*.
 * 规定 W-Wing 技巧的难度系数为 4.4、XYZ-Wing 拓展构型的难度系数为 4.5、WXYZ-Wing 的难度系数为 4.6、WXYZ-Wing 拓展构型的难度系数为 4.8，VWXYZ-Wing 的难度系数为 5.0，摩天楼为 4.0、双线风筝为4.1、多宝鱼为 4.2；
   
   Define difficulty ratings of *W-Wing, XYZ-Wing Extension, WXYZ-Wing, WXYZ-Wing Extension, VWXYZ-Wing, Skyscrapers, 2-String Kite, Turbot Fish* are 4.4, 4.5, 4.6, 4.8, 5.0, 4.0, 4.1 and 4.2 respectively.
